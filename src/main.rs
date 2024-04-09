@@ -1,22 +1,24 @@
 use clap::Parser;
 
-/// Simple program to greet a person
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
-struct Args {
-    /// Name of the person to greet
-    #[arg(short, long)]
-    name: String,
 
-    /// Number of times to greet
-    #[arg(short, long, default_value_t = 1)]
-    count: u8,
+struct Args {
+    #[arg(short, long)]
+    did: Option<String>,
+
+    #[arg(short, long)]
+    yesterday: bool
 }
 
 fn main() {
     let args = Args::parse();
 
-    for _ in 0..args.count {
-        println!("Hello {}!", args.name)
+    if let Some(did) = args.did {
+        println!("It appears that you did {}", did);
+    } else if args.yesterday {
+        println!("Yesterdays events");
+    } else {
+        println!("Gotta put something");
     }
 }
