@@ -1,5 +1,4 @@
 use clap::Parser;
-use diesel::data_types::PgTimestamp;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use std::env;
@@ -22,7 +21,7 @@ pub fn establish_connection() -> PgConnection {
 }
 
 fn main() {
-    let db = establish_connection();
+    let _db = establish_connection();
     let args = Args::parse();
 
     if let Some(did) = args.did {

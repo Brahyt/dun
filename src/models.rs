@@ -1,4 +1,5 @@
 use diesel::prelude::*;
+use diesel::pg::data_types::PgTimestamp;
 
 #[derive(Queryable, Selectable, Debug)]
 #[diesel(table_name = crate::schema::tasks)]
