@@ -1,6 +1,8 @@
 use clap::Parser;
-// use diesel::prelude::*;
+use diesel::data_types::PgTimestamp;
 use diesel::pg::PgConnection;
+use diesel::prelude::*;
+use std::env;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -14,9 +16,19 @@ struct Args {
 }
 
 pub fn establish_connection() -> PgConnection {
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let database_url = env::var("DUN_DATABASE_URL").expect("DUN_DATABASE_URL must be set");
     PgConnection::establish(&database_url)
         .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
+}
+
+#[derive(Queryable, Selectable, Debug)]
+// #[diesel(table_name = crate::schema::tasks)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+struct Task {
+    pub id: i32,
+    pub created_at: PgTimestamp,
+    pub updated_at: PgTimestamp,
+    pub message: String,
 }
 
 fn main() {
