@@ -10,3 +10,9 @@ pub struct Task {
     pub updated_at: PgTimestamp,
     pub message: String,
 }
+
+#[derive(Insertable)]
+#[diesel(table_name = crate::schema::tasks)]
+pub struct NewTask<'a> {
+    pub message: &'a str,
+}

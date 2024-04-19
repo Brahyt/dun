@@ -2,6 +2,9 @@ use clap::Parser;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use std::env;
+use dun::schema::tasks;
+use crate::tasks::message;
+use dun::models::{Task, NewTask};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -21,10 +24,18 @@ pub fn establish_connection() -> PgConnection {
 }
 
 fn main() {
-    let _db = establish_connection();
+    let mut db = establish_connection();
     let args = Args::parse();
 
     if let Some(did) = args.did {
+        let new_task = NewTask {message: &did};
+
+        diesel::insert_into(tasks::table)
+            .values(&new_task)
+            .returning(Task::as_returning())
+            .get_result::<Task>(&mut db)
+            .expect("Error saving new post");
+
         println!("It appears that you did {}", did);
     } else if args.yesterday {
         println!("Yesterdays events");
