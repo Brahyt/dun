@@ -40,7 +40,7 @@ fn main() {
 
         println!("It appears that you did {}", did);
     } else if args.yesterday {
-        let today = Local::now();
+        let today = Local::today().naive_local().and_hms(0, 0, 0);
         let yesterday = today - Duration::days(1);
         let tomorrow = today + Duration::days(1);
 
