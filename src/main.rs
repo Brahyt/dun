@@ -1,12 +1,11 @@
 use chrono::{Duration, Local};
 use clap::Parser;
-use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use dun::models::{NewTask, Task};
 use dun::schema::tasks;
 use dun::schema::tasks::created_at;
 use dun::schema::tasks::message;
-use std::env;
+use dun::database::database_connection::*;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -17,12 +16,6 @@ struct Args {
 
     #[arg(short, long)]
     yesterday: bool,
-}
-
-pub fn establish_connection() -> PgConnection {
-    let database_url = env::var("DUN_DATABASE_URL").expect("DUN_DATABASE_URL must be set");
-    PgConnection::establish(&database_url)
-        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }
 
 fn main() {
