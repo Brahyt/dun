@@ -31,7 +31,7 @@ fn main() {
             .get_result::<Task>(&mut db)
             .expect("Error saving new post");
 
-        println!("It appears that you did {}", did);
+        println!("You: {}", did);
     } else if args.yesterday {
         let today = Local::today().naive_local().and_hms(0, 0, 0);
         let yesterday = today - Duration::days(1);
