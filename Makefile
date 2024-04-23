@@ -2,16 +2,15 @@ prog :=dun
 
 debug ?=
 
-$(info debug is $(debug))
-
 ifdef debug
-  release :=
-  target :=debug
-  extension :=debug
+	$(info debug is $(debug))
+	release :=
+	target :=debug
+	extension :=debug
 else
-  release :=--release
-  target :=release
-  extension :=
+	release :=--release
+	target :=release
+	extension :=
 endif
 
 build:
