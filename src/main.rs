@@ -1,4 +1,4 @@
-use chrono::{Duration, Local};
+use chrono::{Duration, Utc};
 use clap::Parser;
 use diesel::prelude::*;
 use dun::models::{NewTask, Task};
@@ -33,7 +33,7 @@ fn main() {
 
         println!("You did: {}", did);
     } else if args.yesterday {
-        let today = Local::today().naive_local().and_hms(0, 0, 0);
+        let today = Utc::now();
         let yesterday = today - Duration::days(1);
         let tomorrow = today + Duration::days(1);
 
