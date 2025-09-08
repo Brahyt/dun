@@ -6,6 +6,28 @@ use dun::schema::tasks;
 use dun::schema::tasks::created_at;
 use dun::schema::tasks::message;
 use dun::database::database_connection::*;
+use std::process::{Command, Stdio};
+use std::io::Write;
+
+fn format_for_claude(tasks: &[String]) {
+    let prompt = format!(
+        "Please format these tasks I completed yesterday into a nice summary for my daily standup. Here are the tasks: {:?}",
+        tasks
+    );
+    
+    let mut child = Command::new("claude")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .spawn()
+        .expect("Failed to start claude command");
+    
+    if let Some(stdin) = child.stdin.as_mut() {
+        stdin.write_all(prompt.as_bytes()).expect("Failed to write to claude stdin");
+    }
+    
+    child.wait().expect("Failed to wait for claude command");
+}
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -16,6 +38,9 @@ struct Args {
 
     #[arg(short, long)]
     yesterday: bool,
+
+    #[arg(short, long)]
+    claude: bool,
 }
 
 fn main() {
@@ -33,7 +58,7 @@ fn main() {
 
         println!("You did: {}", did);
     } else if args.yesterday {
-        let today = Utc::now();
+        let today = Utc::now().naive_utc();
         let yesterday = today - Duration::days(1);
         let tomorrow = today + Duration::days(1);
 
@@ -43,7 +68,11 @@ fn main() {
             .load::<String>(&mut db)
             .expect("Error");
 
-        println!("{:?}", task_messages);
+        if args.claude {
+            format_for_claude(&task_messages);
+        } else {
+            println!("{:?}", task_messages);
+        }
         // Print out yesterdays events
     } else {
         println!("Gotta put something");
