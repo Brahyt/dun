@@ -1,4 +1,4 @@
-use chrono::{Duration, Utc};
+use chrono::{Duration, Local};
 use clap::Parser;
 use diesel::prelude::*;
 use dun::models::{NewTask, Task};
@@ -41,6 +41,9 @@ struct Args {
 
     #[arg(short, long)]
     claude: bool,
+
+    #[arg(short, long)]
+    today: bool,
 }
 
 fn main() {
@@ -57,14 +60,30 @@ fn main() {
             .expect("Error saving new post");
 
         println!("You did: {}", did);
-    } else if args.yesterday {
-        let today = Utc::now().naive_utc();
-        let yesterday = today - Duration::days(1);
-        let tomorrow = today + Duration::days(1);
+    } else if args.today {
+        let today = Local::now().naive_local().date();
+        let today_start = today.and_hms_opt(0, 0, 0).unwrap();
+        let tomorrow_start = (today + Duration::days(1)).and_hms_opt(0, 0, 0).unwrap();
 
         let task_messages = tasks::table
             .select(message)
-            .filter(created_at.ge(yesterday).and(created_at.lt(tomorrow)))
+            .filter(created_at.ge(today_start).and(created_at.lt(tomorrow_start)))
+            .load::<String>(&mut db)
+            .expect("Error");
+
+        if args.claude {
+            format_for_claude(&task_messages);
+        } else {
+            println!("{:?}", task_messages);
+        }
+    } else if args.yesterday {
+        let today = Local::now().naive_local().date();
+        let yesterday_start = (today - Duration::days(1)).and_hms_opt(0, 0, 0).unwrap();
+        let today_start = today.and_hms_opt(0, 0, 0).unwrap();
+
+        let task_messages = tasks::table
+            .select(message)
+            .filter(created_at.ge(yesterday_start).and(created_at.lt(today_start)))
             .load::<String>(&mut db)
             .expect("Error");
 
