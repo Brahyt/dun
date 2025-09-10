@@ -18,8 +18,8 @@ fn format_for_claude(tasks: &[String]) {
 
     let mut child = Command::new("claude")
         .stdin(Stdio::piped())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .spawn()
         .expect("Failed to start claude command");
 
@@ -27,7 +27,8 @@ fn format_for_claude(tasks: &[String]) {
         stdin.write_all(prompt.as_bytes()).expect("Failed to write to claude stdin");
     }
 
-    child.wait().expect("Failed to wait for claude command");
+    let output = child.wait_with_output().expect("Failed to wait for claude command");
+    println!("{}", String::from_utf8_lossy(&output.stdout));
 }
 
 #[derive(Debug)]
