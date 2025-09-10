@@ -15,18 +15,18 @@ fn format_for_claude(tasks: &[String]) {
         "Please format these tasks I completed yesterday into a nice summary for my daily standup. Here are the tasks: {:?}",
         tasks
     );
-    
+
     let mut child = Command::new("claude")
         .stdin(Stdio::piped())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
         .spawn()
         .expect("Failed to start claude command");
-    
+
     if let Some(stdin) = child.stdin.as_mut() {
         stdin.write_all(prompt.as_bytes()).expect("Failed to write to claude stdin");
     }
-    
+
     child.wait().expect("Failed to wait for claude command");
 }
 
