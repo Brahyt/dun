@@ -35,7 +35,7 @@ fn format_for_claude(tasks: &[String]) {
 enum QueryMode {
     Add(String),
     Today { use_claude: bool },
-    Yesterday { use_claude: bool },
+    Yesterday { use_claude: bool, days_back: u32 },
 }
 
 #[derive(Parser, Debug)]
@@ -45,8 +45,8 @@ struct Args {
     #[arg(short, long)]
     did: Option<String>,
 
-    #[arg(short, long)]
-    yesterday: bool,
+    #[arg(short, long, default_missing_value = "1", num_args(0..=1))]
+    yesterday: Option<u32>,
 
     #[arg(short, long)]
     claude: bool,
@@ -60,8 +60,8 @@ fn determine_query_mode(args: &Args) -> Option<QueryMode> {
         Some(QueryMode::Add(did.clone()))
     } else if args.today {
         Some(QueryMode::Today { use_claude: args.claude })
-    } else if args.yesterday {
-        Some(QueryMode::Yesterday { use_claude: args.claude })
+    } else if let Some(days_back) = args.yesterday {
+        Some(QueryMode::Yesterday { use_claude: args.claude, days_back })
     } else {
         None
     }
@@ -97,14 +97,15 @@ fn handle_query_mode(mode: QueryMode, db: &mut PgConnection) {
                 println!("{:?}", task_messages);
             }
         }
-        QueryMode::Yesterday { use_claude } => {
+        QueryMode::Yesterday { use_claude, days_back } => {
             let today = Local::now().naive_local().date();
-            let yesterday_start = (today - Duration::days(1)).and_hms_opt(0, 0, 0).unwrap();
-            let today_start = today.and_hms_opt(0, 0, 0).unwrap();
+            let target_date = today - Duration::days(days_back as i64);
+            let start_time = target_date.and_hms_opt(0, 0, 0).unwrap();
+            let end_time = (target_date + Duration::days(1)).and_hms_opt(0, 0, 0).unwrap();
 
             let task_messages = tasks::table
                 .select(message)
-                .filter(created_at.ge(yesterday_start).and(created_at.lt(today_start)))
+                .filter(created_at.ge(start_time).and(created_at.lt(end_time)))
                 .load::<String>(db)
                 .expect("Error");
 
