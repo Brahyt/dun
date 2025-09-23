@@ -1,8 +1,8 @@
-use chrono::{Duration, Local};
+use chrono::{Duration, Local, NaiveDateTime};
 use clap::Parser;
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
-use dun::models::{NewTask, Task};
+use dun::models::{NewTask, NewTaskWithDate, Task};
 use dun::schema::tasks;
 use dun::schema::tasks::created_at;
 use dun::schema::tasks::message;
@@ -33,7 +33,7 @@ fn format_for_claude(tasks: &[String]) {
 
 #[derive(Debug)]
 enum QueryMode {
-    Add(String),
+    Add(String, Option<NaiveDateTime>),
     Today { use_claude: bool },
     Yesterday { use_claude: bool, days_back: u32 },
 }
@@ -57,7 +57,14 @@ struct Args {
 
 fn determine_query_mode(args: &Args) -> Option<QueryMode> {
     if let Some(did) = &args.did {
-        Some(QueryMode::Add(did.clone()))
+        let custom_date = if let Some(days_back) = args.yesterday {
+            let today = Local::now().naive_local().date();
+            let target_date = today - Duration::days(days_back as i64);
+            Some(target_date.and_hms_opt(12, 0, 0).unwrap()) // Use noon as default time
+        } else {
+            None
+        };
+        Some(QueryMode::Add(did.clone(), custom_date))
     } else if args.today {
         Some(QueryMode::Today { use_claude: args.claude })
     } else if let Some(days_back) = args.yesterday {
@@ -69,16 +76,33 @@ fn determine_query_mode(args: &Args) -> Option<QueryMode> {
 
 fn handle_query_mode(mode: QueryMode, db: &mut PgConnection) {
     match mode {
-        QueryMode::Add(msg) => {
-            let new_task = NewTask { message: &msg };
+        QueryMode::Add(msg, custom_date) => {
+            if let Some(date) = custom_date {
+                let new_task = NewTaskWithDate {
+                    message: &msg,
+                    created_at: date,
+                    updated_at: date,
+                };
 
-            diesel::insert_into(tasks::table)
-                .values(&new_task)
-                .returning(Task::as_returning())
-                .get_result::<Task>(db)
-                .expect("Error saving new post");
+                diesel::insert_into(tasks::table)
+                    .values(&new_task)
+                    .returning(Task::as_returning())
+                    .get_result::<Task>(db)
+                    .expect("Error saving new post");
 
-            println!("You did: {}", msg);
+                let days_back = (Local::now().naive_local().date() - date.date()).num_days();
+                println!("You did {} days ago: {}", days_back, msg);
+            } else {
+                let new_task = NewTask { message: &msg };
+
+                diesel::insert_into(tasks::table)
+                    .values(&new_task)
+                    .returning(Task::as_returning())
+                    .get_result::<Task>(db)
+                    .expect("Error saving new post");
+
+                println!("You did: {}", msg);
+            }
         }
         QueryMode::Today { use_claude } => {
             let today = Local::now().naive_local().date();

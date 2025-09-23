@@ -1,5 +1,6 @@
 use diesel::prelude::*;
 use diesel::pg::data_types::PgTimestamp;
+use chrono::NaiveDateTime;
 
 #[derive(Queryable, Selectable, Debug)]
 #[diesel(table_name = crate::schema::tasks)]
@@ -15,4 +16,12 @@ pub struct Task {
 #[diesel(table_name = crate::schema::tasks)]
 pub struct NewTask<'a> {
     pub message: &'a str,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = crate::schema::tasks)]
+pub struct NewTaskWithDate<'a> {
+    pub message: &'a str,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
 }
