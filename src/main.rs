@@ -1,4 +1,4 @@
-use chrono::{Duration, Local, NaiveDateTime};
+use chrono::{Duration, Local, NaiveDateTime, TimeZone};
 use clap::Parser;
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
@@ -12,7 +12,7 @@ use std::io::Write;
 
 fn format_for_claude(tasks: &[String]) {
     let prompt = format!(
-        "Please format these tasks I completed yesterday into a nice summary for my daily standup. Here are the tasks: {:?}",
+        "Please format these tasks I completed yesterday into a nice summary for my daily standup. If I surround words with **, example: *Team Sync*, I want you to use that in the formatted summary. Here are the tasks: {:?}",
         tasks
     );
 
@@ -105,9 +105,10 @@ fn handle_query_mode(mode: QueryMode, db: &mut PgConnection) {
             }
         }
         QueryMode::Today { use_claude } => {
-            let today = Local::now().naive_local().date();
-            let today_start = today.and_hms_opt(0, 0, 0).unwrap();
-            let tomorrow_start = (today + Duration::days(1)).and_hms_opt(0, 0, 0).unwrap();
+            let now = Local::now();
+            let today = now.date_naive();
+            let today_start = Local.from_local_datetime(&today.and_hms_opt(0, 0, 0).unwrap()).unwrap().naive_utc();
+            let tomorrow_start = Local.from_local_datetime(&(today + Duration::days(1)).and_hms_opt(0, 0, 0).unwrap()).unwrap().naive_utc();
 
             let task_messages = tasks::table
                 .select(message)
@@ -122,10 +123,11 @@ fn handle_query_mode(mode: QueryMode, db: &mut PgConnection) {
             }
         }
         QueryMode::Yesterday { use_claude, days_back } => {
-            let today = Local::now().naive_local().date();
+            let now = Local::now();
+            let today = now.date_naive();
             let target_date = today - Duration::days(days_back as i64);
-            let start_time = target_date.and_hms_opt(0, 0, 0).unwrap();
-            let end_time = (target_date + Duration::days(1)).and_hms_opt(0, 0, 0).unwrap();
+            let start_time = Local.from_local_datetime(&target_date.and_hms_opt(0, 0, 0).unwrap()).unwrap().naive_utc();
+            let end_time = Local.from_local_datetime(&(target_date + Duration::days(1)).and_hms_opt(0, 0, 0).unwrap()).unwrap().naive_utc();
 
             let task_messages = tasks::table
                 .select(message)
